@@ -1,26 +1,19 @@
 import os
-import json
 import requests
 
 def find_json_files(directory):
-    json_files = []
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith('.json'):
-                json_files.append(os.path.join(root, file))
-    return json_files
+    return [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith('.json')]
 
 def send_file_to_server(file_path, server_ip):
-    with open(file_path, 'r') as file:
-        json_data = json.load(file)
-    
-    url = f'http://{server_ip}/upload'
-    response = requests.post(url, json=json_data)
-    
-    if response.status_code == 200:
-        print(f'Successfully sent {file_path} to {server_ip}')
-    else:
-        print(f'Failed to send {file_path} to {server_ip}. Status code: {response.status_code}')
+    url = f'http://{server_ip}:5050/upload'
+    try:
+        with open(file_path, 'rb') as file:
+            files = {'file': (os.path.basename(file_path), file)}
+            response = requests.post(url, files=files)
+            response.raise_for_status()
+            print(f'Successfully sent {file_path} to {server_ip}. Response: {response.json()}')
+    except requests.exceptions.RequestException as e:
+        print(f'Failed to send {file_path} to {server_ip}. Error: {e}')
 
 def main():
     pwd = os.getcwd()
@@ -40,5 +33,5 @@ def main():
     for json_file in json_files:
         send_file_to_server(json_file, server_ip)
 
-
-main()
+if __name__ == '__main__':
+    main()
